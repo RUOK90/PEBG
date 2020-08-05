@@ -2,16 +2,19 @@ import pickle
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils import data
 from tqdm import tqdm
 
 from args import *
-from PEBG import PEBG
+from PEBG import *
+from dataset import *
 
 # load dataset
 with open(ARGS.train_dataset_path, 'rb') as f_r:
     question_tag_data_dic = pickle.load(f_r)
 print('Done loading dataset')
 
+# get dataset
 questions = question_tag_data_dic['questions']
 tags = question_tag_data_dic['tags']
 question_attr_dic = question_tag_data_dic['question_attr_dic']
@@ -52,23 +55,12 @@ for question, attr in question_attr_dic.items():
     diff_labels.append(attr['difficulty'])
 print('Done processing diff')
 
-QT_q_idxs_tensor = torch.Tensor(QT_q_idxs).long().to(ARGS.device)
-QT_t_idxs_tensor = torch.Tensor(QT_t_idxs).long().to(ARGS.device)
-QT_labels_tensor = torch.Tensor(QT_labels).float().to(ARGS.device)
+QT_loader = data.DataLoader(dataset=QTDataset(QT_q_idxs, QT_t_idxs, QT_labels), shuffle=True, batch_size=int(len(QT_labels)/ARGS.n_batches), num_workers=ARGS.num_workers)
+QQ_loader = data.DataLoader(dataset=QQDataset(QQ_q1_idxs, QQ_q2_idxs, QQ_labels), shuffle=True, batch_size=int(len(QQ_labels)/ARGS.n_batches), num_workers=ARGS.num_workers)
+TT_loader = data.DataLoader(dataset=TTDataset(TT_t1_idxs, TT_t2_idxs, TT_labels), shuffle=True, batch_size=int(len(TT_labels)/ARGS.n_batches), num_workers=ARGS.num_workers)
+diff_loader = data.DataLoader(dataset=DiffDataset(diff_q_idxs, diff_t_idxs, diff_as, diff_labels), shuffle=True, batch_size=int(len(diff_labels)/ARGS.n_batches), num_workers=ARGS.num_workers)
+print('Done setting dataloader')
 
-QQ_q1_idxs_tensor = torch.Tensor(QQ_q1_idxs).long().to(ARGS.device)
-QQ_q2_idxs_tensor = torch.Tensor(QQ_q2_idxs).long().to(ARGS.device)
-QQ_labels_tensor = torch.Tensor(QQ_labels).float().to(ARGS.device)
-
-TT_t1_idxs_tensor = torch.Tensor(TT_t1_idxs).long().to(ARGS.device)
-TT_t2_idxs_tensor = torch.Tensor(TT_t2_idxs).long().to(ARGS.device)
-TT_labels_tensor = torch.Tensor(TT_labels).float().to(ARGS.device)
-
-diff_q_idxs_tensor = torch.Tensor(diff_q_idxs).long().to(ARGS.device)
-diff_t_idxs_tensor = torch.Tensor(diff_t_idxs).long().to(ARGS.device)
-diff_as_tensor = torch.Tensor(diff_as).float().to(ARGS.device)
-diff_labels_tensor = torch.Tensor(diff_labels).float().to(ARGS.device)
-print('Done tensorizing')
 
 # define model
 model = PEBG(questions, tags, question_attr_dic, question_to_emb_idx, tag_to_emb_idx).to(ARGS.device)
@@ -76,28 +68,40 @@ bcelogit_loss = nn.BCEWithLogitsLoss(reduction='mean')
 mse_loss = nn.MSELoss(reduction='mean')
 optimizer = optim.Adam(model.parameters(), lr=ARGS.lr)
 
-for epoch in tqdm(range(ARGS.n_epochs)):
-    QT_logit, QQ_logit, TT_logit, diff_hat, question_emb = model(QT_q_idxs_tensor, QT_t_idxs_tensor, QQ_q1_idxs_tensor, QQ_q2_idxs_tensor, TT_t1_idxs_tensor, TT_t2_idxs_tensor, diff_q_idxs_tensor, diff_t_idxs_tensor, diff_as_tensor)
-    QT_loss = bcelogit_loss(QT_logit, QT_labels_tensor)
-    QQ_loss = bcelogit_loss(QQ_logit, QQ_labels_tensor)
-    TT_loss = bcelogit_loss(TT_logit, TT_labels_tensor)
-    diff_loss = mse_loss(diff_hat, diff_labels_tensor)
 
-    total_loss = QT_loss + QQ_loss + TT_loss + diff_loss
+# train
+iter_cnt = 1
+for epoch in range(ARGS.n_epochs):
+    for QT_batch, QQ_batch, TT_batch, diff_batch in zip(QT_loader, QQ_loader, TT_loader, diff_loader):
+        QT_batch = {k: t.to(ARGS.device) for k, t in QT_batch.items()}
+        QQ_batch = {k: t.to(ARGS.device) for k, t in QQ_batch.items()}
+        TT_batch = {k: t.to(ARGS.device) for k, t in TT_batch.items()}
+        diff_batch = {k: t.to(ARGS.device) for k, t in diff_batch.items()}
 
-    # print(f'epoch: {epoch}, loss: {total_loss.item()}')
-    if ARGS.use_wandb:
-        wandb.log({
-            'QT loss': QT_loss.item(),
-            'QQ loss': QQ_loss.item(),
-            'TT loss': TT_loss.item(),
-            'Diff_loss': diff_loss.item(),
-            'Total loss': total_loss.item()
-        }, step=epoch)
+        QT_logit, QQ_logit, TT_logit, diff_hat, question_emb = model(QT_batch['QT_q'], QT_batch['QT_t'], QQ_batch['QQ_q1'], QQ_batch['QQ_q2'], TT_batch['TT_t1'], TT_batch['TT_t2'], diff_batch['diff_q'], diff_batch['diff_t'], diff_batch['diff_a'])
+        QT_loss = bcelogit_loss(QT_logit, QT_batch['QT_label'])
+        QQ_loss = bcelogit_loss(QQ_logit, QQ_batch['QQ_label'])
+        TT_loss = bcelogit_loss(TT_logit, TT_batch['TT_label'])
+        diff_loss = mse_loss(diff_hat, diff_batch['diff_label'])
 
-    optimizer.zero_grad()
-    total_loss.backward()
-    optimizer.step()
+        total_loss = QT_loss + QQ_loss + TT_loss + diff_loss
 
-    # weight 저장
-    # 우선 weight 저장 없이 쭉 돌려보기
+        if iter_cnt % ARGS.eval_steps == 0:
+            print(f'epoch: {epoch}, iter: {iter_cnt}, loss: {total_loss.item()}')
+            if ARGS.use_wandb:
+                wandb.log({
+                    'QT loss': QT_loss.item(),
+                    'QQ loss': QQ_loss.item(),
+                    'TT loss': TT_loss.item(),
+                    'Diff_loss': diff_loss.item(),
+                    'Total loss': total_loss.item()
+                }, step=iter_cnt)
+
+        optimizer.zero_grad()
+        total_loss.backward()
+        optimizer.step()
+
+        iter_cnt += 1
+
+        # 우선 weight 저장 없이 쭉 돌려보기
+        # weight 저장

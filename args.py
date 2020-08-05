@@ -34,7 +34,7 @@ def make_arg_parser():
     base_args.add_argument('--run_script')
     base_args.add_argument('--device', type=str)
     base_args.add_argument('--gpu', type=str, default='7')
-    base_args.add_argument('--debug_mode', type=str2bool, default=1)
+    base_args.add_argument('--debug_mode', type=str2bool, default=0)
     base_args.add_argument('--num_workers', type=int, default=4)
     base_args.add_argument('--weight_path', type=str, default='/shared/pebg_weights')
     base_args.add_argument('--train_dataset_path', type=str, default='/shared/vida/processed/question_tag_data_dic.pkl')
@@ -48,11 +48,12 @@ def make_arg_parser():
 
     train_args = parser.add_argument_group('Train args')
     train_args.add_argument('--random_seed', type=int, default=1234)
-    train_args.add_argument('--n_epochs', type=int, default=10000)
-    train_args.add_argument('--train_batch_size', type=int, default=512)
+    train_args.add_argument('--n_epochs', type=int, default=100)
+    train_args.add_argument('--eval_steps', type=int, default=1)
+    train_args.add_argument('--n_batches', type=int, default=31)
     train_args.add_argument('--lr', type=float, default=0.001)
-    train_args.add_argument('--emb_dim', type=int, default=256)
-    train_args.add_argument('--product_layer_dim', type=int, default=128)
+    train_args.add_argument('--emb_dim', type=int, default=64)
+    train_args.add_argument('--product_layer_dim', type=int, default=256)
     train_args.add_argument('--dropout_rate', type=float, default=0.5)
 
     return parser

@@ -84,18 +84,40 @@ for epoch in range(ARGS.n_epochs):
         TT_loss = bcelogit_loss(TT_logit, TT_batch['TT_label'])
         diff_loss = mse_loss(diff_hat, diff_batch['diff_label'])
 
-        total_loss = QT_loss + QQ_loss + TT_loss + diff_loss
+        if ARGS.target == 'total':
+            total_loss = QT_loss + QQ_loss + TT_loss + diff_loss
+            if iter_cnt % ARGS.eval_steps == 0:
+                print(f'epoch: {epoch}, iter: {iter_cnt}, '
+                      f'total_loss: {total_loss.item()}, QT_loss: {QT_loss.item():.4f}, QQ_loss: {QQ_loss.item():.4f}, TT_loss: {TT_loss.item():.4f}, diff_loss: {diff_loss.item():.4f}')
+                if ARGS.use_wandb:
+                    wandb.log({
+                        'QT loss': QT_loss.item(),
+                        'QQ loss': QQ_loss.item(),
+                        'TT loss': TT_loss.item(),
+                        'Diff_loss': diff_loss.item(),
+                        'Total loss': total_loss.item()
+                    }, step=iter_cnt)
 
-        if iter_cnt % ARGS.eval_steps == 0:
-            print(f'epoch: {epoch}, iter: {iter_cnt}, loss: {total_loss.item()}')
-            if ARGS.use_wandb:
-                wandb.log({
-                    'QT loss': QT_loss.item(),
-                    'QQ loss': QQ_loss.item(),
-                    'TT loss': TT_loss.item(),
-                    'Diff_loss': diff_loss.item(),
-                    'Total loss': total_loss.item()
-                }, step=iter_cnt)
+        elif ARGS.target == 'QT':
+            total_loss = QT_loss
+            if iter_cnt % ARGS.eval_steps == 0:
+                print(f'epoch: {epoch}, iter: {iter_cnt}, QT_loss: {QT_loss.item():.4f}')
+                if ARGS.use_wandb:
+                    wandb.log({'QT loss': QT_loss.item()}, step=iter_cnt)
+
+        elif ARGS.target == 'QQ':
+            total_loss = QQ_loss
+            if iter_cnt % ARGS.eval_steps == 0:
+                print(f'epoch: {epoch}, iter: {iter_cnt}, QQ_loss: {QQ_loss.item():.4f}')
+                if ARGS.use_wandb:
+                    wandb.log({'QQ loss': QQ_loss.item()}, step=iter_cnt)
+
+        elif ARGS.target == 'TT':
+            total_loss = TT_loss
+            if iter_cnt % ARGS.eval_steps == 0:
+                print(f'epoch: {epoch}, iter: {iter_cnt}, TT_loss: {TT_loss.item():.4f}')
+                if ARGS.use_wandb:
+                    wandb.log({'TT loss': TT_loss.item()}, step=iter_cnt)
 
         optimizer.zero_grad()
         total_loss.backward()

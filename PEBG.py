@@ -24,7 +24,7 @@ class PEBG(nn.Module):
 
         for p in self.parameters():
             if p.dim() > 1:
-                nn.init.xavier_uniform_(p)
+                nn.init.normal_(tensor=p, mean=0, std=0.1)
 
     def forward(self, QT_q, QT_t, QQ_q1, QQ_q2, TT_t1, TT_t2, diff_q, diff_t, diff_a):
         QT_q_emb = self.question_embeddings(QT_q)

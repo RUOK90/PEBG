@@ -1,12 +1,13 @@
+import numpy as np
 import torch
 from torch.utils import data
 
 
 class QTDataset(data.Dataset):
     def __init__(self, QT_q, QT_t, QT_label):
-        self.QT_q = torch.Tensor(QT_q).long()
-        self.QT_t = torch.Tensor(QT_t).long()
-        self.QT_label = torch.Tensor(QT_label).float()
+        self.QT_q = np.asarray(QT_q, dtype=np.long)
+        self.QT_t = np.asarray(QT_t, dtype=np.long)
+        self.QT_label = np.asarray(QT_label, dtype=np.float32)
 
     def __len__(self):
         return len(self.QT_label)
@@ -17,9 +18,9 @@ class QTDataset(data.Dataset):
 
 class QQDataset(data.Dataset):
     def __init__(self, QQ_q1, QQ_q2, QQ_label):
-        self.QQ_q1 = torch.Tensor(QQ_q1).long()
-        self.QQ_q2 = torch.Tensor(QQ_q2).long()
-        self.QQ_label = torch.Tensor(QQ_label).float()
+        self.QQ_q1 = np.asarray(QQ_q1, dtype=np.long)
+        self.QQ_q2 = np.asarray(QQ_q2, dtype=np.long)
+        self.QQ_label = np.asarray(QQ_label, dtype=np.float32)
 
     def __len__(self):
         return len(self.QQ_label)
@@ -30,9 +31,9 @@ class QQDataset(data.Dataset):
 
 class TTDataset(data.Dataset):
     def __init__(self, TT_t1, TT_t2, TT_label):
-        self.TT_t1 = torch.Tensor(TT_t1).long()
-        self.TT_t2 = torch.Tensor(TT_t2).long()
-        self.TT_label = torch.Tensor(TT_label).float()
+        self.TT_t1 = np.asarray(TT_t1, dtype=np.long)
+        self.TT_t2 = np.asarray(TT_t2, dtype=np.long)
+        self.TT_label = np.asarray(TT_label, dtype=np.float32)
 
     def __len__(self):
         return len(self.TT_label)
@@ -43,10 +44,10 @@ class TTDataset(data.Dataset):
 
 class DiffDataset(data.Dataset):
     def __init__(self, diff_q, diff_t, diff_a, diff_label):
-        self.diff_q = torch.Tensor(diff_q).long()
-        self.diff_t = torch.Tensor(diff_t).long()
-        self.diff_a = torch.Tensor(diff_a).float()
-        self.diff_label = torch.Tensor(diff_label).float()
+        self.diff_q = np.asarray(diff_q, dtype=np.long)
+        self.diff_t = np.asarray(diff_t, dtype=np.long)
+        self.diff_a = np.asarray(diff_a, dtype=np.float32)
+        self.diff_label = np.asarray(diff_label, dtype=np.float32)
 
     def __len__(self):
         return len(self.diff_label)

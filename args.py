@@ -34,27 +34,28 @@ def make_arg_parser():
     base_args.add_argument('--run_script')
     base_args.add_argument('--device', type=str)
     base_args.add_argument('--gpu', type=str, default='7')
-    base_args.add_argument('--debug_mode', type=str2bool, default=0)
+    base_args.add_argument('--debug_mode', type=str2bool, default=1)
     base_args.add_argument('--num_workers', type=int, default=4)
     base_args.add_argument('--weight_path', type=str, default='/shared/pebg_weights')
     base_args.add_argument('--train_dataset_path', type=str, default='/shared/vida/processed/question_tag_data_dic.pkl')
     base_args.add_argument('--machine_name', type=str)
 
     wandb_args = parser.add_argument_group('Wandb args')
-    wandb_args.add_argument('--use_wandb', type=str2bool, default=1)
+    wandb_args.add_argument('--use_wandb', type=str2bool, default=0)
     wandb_args.add_argument('--project', type=str, default='pebg')
     wandb_args.add_argument('--name', type=str)
     wandb_args.add_argument('--tags', type=str)
 
     train_args = parser.add_argument_group('Train args')
     train_args.add_argument('--random_seed', type=int, default=1234)
-    train_args.add_argument('--n_epochs', type=int, default=100)
+    train_args.add_argument('--n_epochs', type=int, default=1000)
     train_args.add_argument('--eval_steps', type=int, default=1)
-    train_args.add_argument('--n_batches', type=int, default=31)
+    train_args.add_argument('--n_batches', type=int, default=53)
     train_args.add_argument('--lr', type=float, default=0.001)
     train_args.add_argument('--emb_dim', type=int, default=64)
     train_args.add_argument('--product_layer_dim', type=int, default=256)
     train_args.add_argument('--dropout_rate', type=float, default=0.5)
+    train_args.add_argument('--target', type=str, default='total', choices=['total', 'QQ', 'QT', 'TT', 'diff'])
 
     return parser
 
@@ -67,7 +68,7 @@ def get_args():
     torch.set_printoptions(threshold=10000)
 
     # name
-    args.name = f'e_dim:{args.emb_dim}_pl_dim:{args.product_layer_dim}_dr:{args.dropout_rate}_lr:{args.lr}'
+    args.name = f'{args.target}_e_dim:{args.emb_dim}_pl_dim:{args.product_layer_dim}_dr:{args.dropout_rate}_lr:{args.lr}'
 
     # parse tags
     args.tags = args.tags.split(',') if args.tags is not None else ['test']

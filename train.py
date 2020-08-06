@@ -88,7 +88,7 @@ for epoch in range(ARGS.n_epochs):
             total_loss = QT_loss + QQ_loss + TT_loss + diff_loss
             if iter_cnt % ARGS.eval_steps == 0:
                 print(f'epoch: {epoch}, iter: {iter_cnt}, '
-                      f'total_loss: {total_loss.item()}, QT_loss: {QT_loss.item():.4f}, QQ_loss: {QQ_loss.item():.4f}, TT_loss: {TT_loss.item():.4f}, diff_loss: {diff_loss.item():.4f}')
+                      f'total_loss: {total_loss.item():.4f}, QT_loss: {QT_loss.item():.4f}, QQ_loss: {QQ_loss.item():.4f}, TT_loss: {TT_loss.item():.4f}, diff_loss: {diff_loss.item():.4f}')
                 if ARGS.use_wandb:
                     wandb.log({
                         'QT loss': QT_loss.item(),

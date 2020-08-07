@@ -48,14 +48,13 @@ def make_arg_parser():
 
     train_args = parser.add_argument_group('Train args')
     train_args.add_argument('--random_seed', type=int, default=1234)
-    train_args.add_argument('--n_epochs', type=int, default=1000)
+    train_args.add_argument('--n_epochs', type=int, default=2000)
     train_args.add_argument('--eval_steps', type=int, default=1)
     train_args.add_argument('--n_batches', type=int, default=53)
     train_args.add_argument('--lr', type=float, default=0.001)
     train_args.add_argument('--emb_dim', type=int, default=64)
     train_args.add_argument('--product_layer_dim', type=int, default=256)
     train_args.add_argument('--dropout_rate', type=float, default=0.5)
-    train_args.add_argument('--target', type=str, default='total', choices=['total', 'QQ', 'QT', 'TT', 'diff'])
 
     return parser
 
@@ -68,7 +67,7 @@ def get_args():
     torch.set_printoptions(threshold=10000)
 
     # name
-    args.name = f'{args.target}_e_dim:{args.emb_dim}_pl_dim:{args.product_layer_dim}_dr:{args.dropout_rate}_lr:{args.lr}'
+    args.name = f'pebg_e_dim:{args.emb_dim}_pl_dim:{args.product_layer_dim}_dr:{args.dropout_rate}'
 
     # parse tags
     args.tags = args.tags.split(',') if args.tags is not None else ['test']

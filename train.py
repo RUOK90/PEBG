@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils import data
 from tqdm import tqdm
+import numpy as np
 
 from args import *
 from PEBG import *
@@ -70,8 +71,12 @@ optimizer = optim.Adam(model.parameters(), lr=ARGS.lr)
 
 
 # train
-iter_cnt = 1
-for epoch in range(ARGS.n_epochs):
+for epoch in range(1, ARGS.n_epochs+1):
+    total_losses = []
+    QT_losses = []
+    QQ_losses = []
+    TT_losses = []
+    diff_losses = []
     for QT_batch, QQ_batch, TT_batch, diff_batch in zip(QT_loader, QQ_loader, TT_loader, diff_loader):
         QT_batch = {k: t.to(ARGS.device) for k, t in QT_batch.items()}
         QQ_batch = {k: t.to(ARGS.device) for k, t in QQ_batch.items()}
@@ -84,46 +89,37 @@ for epoch in range(ARGS.n_epochs):
         TT_loss = bcelogit_loss(TT_logit, TT_batch['TT_label'])
         diff_loss = mse_loss(diff_hat, diff_batch['diff_label'])
 
-        if ARGS.target == 'total':
-            total_loss = QT_loss + QQ_loss + TT_loss + diff_loss
-            if iter_cnt % ARGS.eval_steps == 0:
-                print(f'epoch: {epoch}, iter: {iter_cnt}, '
-                      f'total_loss: {total_loss.item():.4f}, QT_loss: {QT_loss.item():.4f}, QQ_loss: {QQ_loss.item():.4f}, TT_loss: {TT_loss.item():.4f}, diff_loss: {diff_loss.item():.4f}')
-                if ARGS.use_wandb:
-                    wandb.log({
-                        'QT loss': QT_loss.item(),
-                        'QQ loss': QQ_loss.item(),
-                        'TT loss': TT_loss.item(),
-                        'Diff_loss': diff_loss.item(),
-                        'Total loss': total_loss.item()
-                    }, step=iter_cnt)
-
-        elif ARGS.target == 'QT':
-            total_loss = QT_loss
-            if iter_cnt % ARGS.eval_steps == 0:
-                print(f'epoch: {epoch}, iter: {iter_cnt}, QT_loss: {QT_loss.item():.4f}')
-                if ARGS.use_wandb:
-                    wandb.log({'QT loss': QT_loss.item()}, step=iter_cnt)
-
-        elif ARGS.target == 'QQ':
-            total_loss = QQ_loss
-            if iter_cnt % ARGS.eval_steps == 0:
-                print(f'epoch: {epoch}, iter: {iter_cnt}, QQ_loss: {QQ_loss.item():.4f}')
-                if ARGS.use_wandb:
-                    wandb.log({'QQ loss': QQ_loss.item()}, step=iter_cnt)
-
-        elif ARGS.target == 'TT':
-            total_loss = TT_loss
-            if iter_cnt % ARGS.eval_steps == 0:
-                print(f'epoch: {epoch}, iter: {iter_cnt}, TT_loss: {TT_loss.item():.4f}')
-                if ARGS.use_wandb:
-                    wandb.log({'TT loss': TT_loss.item()}, step=iter_cnt)
+        total_loss = QT_loss + QQ_loss + TT_loss + diff_loss
 
         optimizer.zero_grad()
         total_loss.backward()
         optimizer.step()
 
-        iter_cnt += 1
+        total_losses.append(total_loss.item())
+        QT_losses.append(QT_loss.item())
+        QQ_losses.append(QQ_loss.item())
+        TT_losses.append(TT_loss.item())
+        diff_losses.append(diff_loss.item())
 
-        # 우선 weight 저장 없이 쭉 돌려보기
-        # weight 저장
+    total_epoch_loss = np.mean(total_losses)
+    QT_epoch_loss = np.mean(QT_losses)
+    QQ_epoch_loss = np.mean(QQ_losses)
+    TT_epoch_loss = np.mean(TT_losses)
+    diff_epoch_loss = np.mean(diff_losses)
+
+    print(f'epoch: {epoch}, iter: {iter_cnt}, '
+          f'total_loss: {total_epoch_loss:.4f}, QT_loss: {QT_epoch_loss:.4f}, QQ_loss: {QQ_epoch_loss.item():.4f},'
+          f'TT_loss: {TT_epoch_loss.item():.4f}, diff_loss: {diff_epoch_loss.item():.4f}')
+
+    if ARGS.use_wandb:
+        wandb.log({
+            'QT loss': QT_epoch_loss,
+            'QQ loss': QQ_epoch_loss,
+            'TT loss': TT_epoch_loss,
+            'Diff_loss': diff_epoch_loss,
+            'Total loss': total_epoch_loss
+        }, step=epoch)
+
+    if epoch in [100, 250, 500, 750, 1000, 1250, 1500, 1750, 2000]:
+        model_weights = model.state_dict()
+        torch.save(model_weights, f'{ARGS.weight_path}/{ARGS.name}_{epoch}.pt')

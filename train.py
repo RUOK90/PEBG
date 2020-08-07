@@ -107,9 +107,8 @@ for epoch in range(1, ARGS.n_epochs+1):
     TT_epoch_loss = np.mean(TT_losses)
     diff_epoch_loss = np.mean(diff_losses)
 
-    print(f'epoch: {epoch}, iter: {iter_cnt}, '
-          f'total_loss: {total_epoch_loss:.4f}, QT_loss: {QT_epoch_loss:.4f}, QQ_loss: {QQ_epoch_loss.item():.4f},'
-          f'TT_loss: {TT_epoch_loss.item():.4f}, diff_loss: {diff_epoch_loss.item():.4f}')
+    print(f'epoch: {epoch}, total_loss: {total_epoch_loss:.4f},'
+          f'QT_loss: {QT_epoch_loss:.4f}, QQ_loss: {QQ_epoch_loss.item():.4f}, TT_loss: {TT_epoch_loss.item():.4f}, diff_loss: {diff_epoch_loss.item():.4f}')
 
     if ARGS.use_wandb:
         wandb.log({
